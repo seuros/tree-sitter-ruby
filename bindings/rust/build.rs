@@ -1,10 +1,24 @@
 fn main() {
-    let src_dir = std::path::Path::new("src");
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+    let src_dir = if std::path::Path::new(&manifest_dir).join("src").exists() {
+        std::path::PathBuf::from(&manifest_dir).join("src")
+    } else if std::path::Path::new(&manifest_dir).join("../../src").exists() {
+        std::path::PathBuf::from(&manifest_dir).join("../../src")
+    } else {
+        panic!("Could not find src directory for tree-sitter-ruby")
+    };
 
     let mut c_config = cc::Build::new();
+
+    // FreeBSD-specific flags for proper symbol export
+    #[cfg(target_os = "freebsd")]
+    {
+        c_config.flag("-fPIC");
+    }
+
     c_config
         .std("c11")
-        .include(src_dir)
+        .include(&src_dir)
         .flag_if_supported("-Wno-unused-value");
 
     #[cfg(target_env = "msvc")]
